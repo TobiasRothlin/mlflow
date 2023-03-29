@@ -1,6 +1,8 @@
 import os
 import posixpath
 
+from requests.exceptions import HTTPError
+
 from mlflow.entities import FileInfo
 from mlflow.store.artifact.artifact_repo import ArtifactRepository, verify_artifact_path
 from mlflow.tracking._tracking_service.utils import _get_default_host_creds
@@ -64,13 +66,35 @@ class HttpArtifactRepository(ArtifactRepository):
         return sorted(file_infos, key=lambda f: f.path)
 
     def _download_file(self, remote_file_path, local_path):
+        self._partial_download(remote_file_path, local_path, start_position=None)
+
+    def _partial_download(self, remote_file_path, local_path, start_position=None):
+        resume_header = ({'Range': f'bytes={start_position}-'}
+                         if start_position else None)
+
+        file_size_downloaded = start_position if start_position else 0
+        mode = 'ab' if start_position else 'wb'
+
         endpoint = posixpath.join("/", remote_file_path)
-        resp = http_request(self._host_creds, endpoint, "GET", stream=True)
+        resp = http_request(self._host_creds, endpoint, "GET", stream=True, headers=resume_header)
         augmented_raise_for_status(resp)
-        with open(local_path, "wb") as f:
+
+        with open(local_path, mode) as f:
             chunk_size = 1024 * 1024  # 1 MB
             for chunk in resp.iter_content(chunk_size=chunk_size):
                 f.write(chunk)
+                file_size_downloaded += len(chunk)
+
+        file_size_header = resp.headers.get('content-length')
+        if file_size_header is not None:
+            expected_file_size = int(file_size_header)
+            if start_position is None and (not file_size_downloaded == expected_file_size):
+
+                self._partial_download(remote_file_path=remote_file_path, local_path=local_path,
+                                       start_position=file_size_downloaded)
+
+            elif not file_size_downloaded == expected_file_size:
+                raise HTTPError(f"Error during the download of file {remote_file_path}")
 
     def delete_artifacts(self, artifact_path=None):
         endpoint = posixpath.join("/", artifact_path) if artifact_path else "/"
