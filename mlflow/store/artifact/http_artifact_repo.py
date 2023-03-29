@@ -87,8 +87,10 @@ class HttpArtifactRepository(ArtifactRepository):
                 file_size_downloaded += len(chunk)
 
         file_size_header = resp.headers.get('content-length')
+        print(f"file_size_header:{file_size_header}")
         if file_size_header is not None:
             expected_file_size = int(file_size_header)
+            print(f"file_size_downloaded:{file_size_downloaded},expected_file_size:{expected_file_size}")
             if start_position is None and (not file_size_downloaded == expected_file_size):
 
                 self._partial_download(remote_file_path=remote_file_path, local_path=local_path,
