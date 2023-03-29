@@ -66,6 +66,7 @@ class HttpArtifactRepository(ArtifactRepository):
         return sorted(file_infos, key=lambda f: f.path)
 
     def _download_file(self, remote_file_path, local_path):
+        print("New version")
         self._partial_download(remote_file_path, local_path, start_position=None)
 
     def _partial_download(self, remote_file_path, local_path, start_position=None):
