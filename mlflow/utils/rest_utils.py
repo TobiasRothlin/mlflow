@@ -144,7 +144,8 @@ def http_request(
 
     from mlflow.tracking.request_header.registry import resolve_request_headers
 
-    headers = dict(**resolve_request_headers())
+    existing_headers = kwargs.pop("headers",None)
+    headers = dict(**resolve_request_headers(existing_headers))
 
     if extra_headers:
         headers = dict(**headers, **extra_headers)
