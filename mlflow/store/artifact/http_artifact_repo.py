@@ -1,7 +1,9 @@
 import os
 import posixpath
+import re
 
 from requests.exceptions import HTTPError
+from urllib.parse import urlparse, urlunparse
 
 from mlflow.entities import FileInfo
 from mlflow.store.artifact.artifact_repo import ArtifactRepository, verify_artifact_path
@@ -66,7 +68,6 @@ class HttpArtifactRepository(ArtifactRepository):
         return sorted(file_infos, key=lambda f: f.path)
 
     def _download_file(self, remote_file_path, local_path):
-        print("New version")
         self._partial_download(remote_file_path, local_path, start_position=None)
 
     def _partial_download(self, remote_file_path, local_path, start_position=None):
@@ -77,7 +78,16 @@ class HttpArtifactRepository(ArtifactRepository):
         mode = 'ab' if start_position else 'wb'
 
         endpoint = posixpath.join("/", remote_file_path)
-        resp = http_request(self._host_creds, endpoint, "GET", stream=True, headers=resume_header)
+        url, *tail = re.split("(?<=[A-z]|\d)/(?=[A-z]|\d)", self.artifact_uri)
+        path = "/".join(tail[tail.index("artifacts", 4) + 1:]) + endpoint
+        path = path.lstrip("/")
+        id = tail[5]
+        endpoint = "/get-artifact"
+        host_creds = self._host_creds
+        host_creds.host = url
+
+        resp = http_request(host_creds, endpoint, "GET", stream=True, headers=resume_header,
+                            params={"path": path, "run_uuid": id})
         augmented_raise_for_status(resp)
 
         with open(local_path, mode) as f:
@@ -87,10 +97,8 @@ class HttpArtifactRepository(ArtifactRepository):
                 file_size_downloaded += len(chunk)
 
         file_size_header = resp.headers.get('content-length')
-        print(f"file_size_header:{file_size_header}")
         if file_size_header is not None:
             expected_file_size = int(file_size_header)
-            print(f"file_size_downloaded:{file_size_downloaded},expected_file_size:{expected_file_size}")
             if start_position is None and (not file_size_downloaded == expected_file_size):
 
                 self._partial_download(remote_file_path=remote_file_path, local_path=local_path,
