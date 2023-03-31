@@ -97,9 +97,9 @@ class HttpArtifactRepository(ArtifactRepository):
                 file_size_downloaded += len(chunk)
 
         file_size_header = resp.headers.get('content-length')
-        print(f"Content-lenght:{start_position + int(file_size_header)},downloaded file size:{file_size_downloaded},start position:{start_position}")
+        print(f"Content-lenght:{(start_position if start_position else 0) + int(file_size_header)},downloaded file size:{file_size_downloaded},start position:{start_position}")
         if file_size_header is not None:
-            expected_file_size = start_position + int(file_size_header)
+            expected_file_size = (start_position if start_position else 0) + int(file_size_header)
             if (not file_size_downloaded == expected_file_size) and (
                     file_size_downloaded > (start_position if start_position else 0)):
 
