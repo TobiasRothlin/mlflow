@@ -100,13 +100,13 @@ class HttpArtifactRepository(ArtifactRepository):
         if file_size_header is not None:
             expected_file_size = int(file_size_header)
             if (not file_size_downloaded == expected_file_size) and (
-                    file_size_downloaded > start_position if start_position else 0):
+                    file_size_downloaded > (start_position if start_position else 0)):
 
                 self._partial_download(remote_file_path=remote_file_path, local_path=local_path,
                                        start_position=file_size_downloaded)
 
             elif not file_size_downloaded == expected_file_size:
-                raise HTTPError(f"Error during the download of file {remote_file_path}")
+                raise HTTPError(f"Error during the download of file {remote_file_path},{start_position},{file_size_downloaded},{expected_file_size}")
 
     def delete_artifacts(self, artifact_path=None):
         endpoint = posixpath.join("/", artifact_path) if artifact_path else "/"
