@@ -99,7 +99,7 @@ class HttpArtifactRepository(ArtifactRepository):
         file_size_header = resp.headers.get('content-length')
         if file_size_header is not None:
             expected_file_size = int(file_size_header)
-            if start_position is None and (not file_size_downloaded == expected_file_size):
+            if (not file_size_downloaded == expected_file_size) and (file_size_downloaded > start_position):
 
                 self._partial_download(remote_file_path=remote_file_path, local_path=local_path,
                                        start_position=file_size_downloaded)
