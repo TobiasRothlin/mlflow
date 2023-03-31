@@ -76,7 +76,7 @@ class HttpArtifactRepository(ArtifactRepository):
 
         file_size_downloaded = start_position if start_position else 0
         mode = 'ab' if start_position else 'wb'
-        print(start_position)
+
         endpoint = posixpath.join("/", remote_file_path)
         url, *tail = re.split("(?<=[A-z]|\d)/(?=[A-z]|\d)", self.artifact_uri)
         path = "/".join(tail[tail.index("artifacts", 4) + 1:]) + endpoint
@@ -97,6 +97,7 @@ class HttpArtifactRepository(ArtifactRepository):
                 file_size_downloaded += len(chunk)
 
         file_size_header = resp.headers.get('content-length')
+        print(f"Content-lenght:{file_size_header},downloaded file size:{file_size_downloaded},start position:{start_position}")
         if file_size_header is not None:
             expected_file_size = int(file_size_header)
             if (not file_size_downloaded == expected_file_size) and (
